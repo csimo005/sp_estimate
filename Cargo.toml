@@ -1,0 +1,11 @@
+[package]
+name = "sp_estimate"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+plotters = "0.3.7"
+
+[dependencies]
+rand = "0.8.5"
+statrs = "0.18.0"
