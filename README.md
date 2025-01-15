@@ -1,4 +1,4 @@
-#SP Estimate
+# SP Estimate
 SP Estimate is a state & parameter estimation library implemented in rust, with the hope of
 expanding the tooling available in the rust ecosystem and grow the rust robotics community.
 
