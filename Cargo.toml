@@ -2,6 +2,10 @@
 name = "sp_estimate"
 version = "0.1.0"
 edition = "2021"
+author = "Cody Simons <csimo005@ucr.edu>"
+repository = "https://github.com/csimo005/sp_estimate"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
 
 [dev-dependencies]
 plotters = "0.3.7"
