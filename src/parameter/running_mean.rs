@@ -6,12 +6,16 @@ pub struct RunningMean {
 
 impl RunningMean {
     pub fn new() -> Self {
-        RunningMean{ mean: 0.0, m2: 0.0, cnt: 0 }
+        RunningMean {
+            mean: 0.0,
+            m2: 0.0,
+            cnt: 0,
+        }
     }
 
     pub fn update(&mut self, new_val: f32) {
         self.cnt += 1;
-        
+
         let delta = new_val - self.mean;
         self.mean += delta / (self.cnt as f32);
 
@@ -30,7 +34,8 @@ impl RunningMean {
     pub fn confidence(&self, percentile: f32) -> Result<f32, &'static str> {
         match self.cnt {
             0 | 1 => Err("Need at least two measuerments for confidence interval"),
-            _ => Ok((percentile * (self.m2 / ((self.cnt as f32) - 1.0)).sqrt()) / (self.cnt as f32).sqrt()),
+            _ => Ok((percentile * (self.m2 / ((self.cnt as f32) - 1.0)).sqrt())
+                / (self.cnt as f32).sqrt()),
         }
     }
 }

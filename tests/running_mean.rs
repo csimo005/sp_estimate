@@ -1,7 +1,8 @@
+use plotters::prelude::*;
+use rand::distributions::Distribution;
+use rand::thread_rng;
 use sp_estimate::parameter::running_mean::RunningMean;
-use plotters::prelude::*; use rand::thread_rng; use rand::distributions::Distribution; use statrs::distribution::{Normal, Continuous};
-//use statrs::statistics::Distribution;
-
+use statrs::distribution::Normal;
 
 #[test]
 fn running_mean_test() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,7 +13,11 @@ fn running_mean_test() -> Result<(), Box<dyn std::error::Error>> {
     let n = Normal::new(0.0, 1.0).unwrap();
 
     let mut rng = thread_rng();
-    let data: Vec<_> = n.sample_iter(&mut rng).take(N_SAMPLES).map(|w| param + (w as f32)).collect();
+    let data: Vec<_> = n
+        .sample_iter(&mut rng)
+        .take(N_SAMPLES)
+        .map(|w| param + (w as f32))
+        .collect();
 
     let mut est: Vec<_> = Vec::<(f32, f32)>::new();
     let mut cnf: Vec<_> = Vec::<f32>::new();
@@ -40,34 +45,28 @@ fn running_mean_test() -> Result<(), Box<dyn std::error::Error>> {
 
     chart.configure_mesh().draw()?;
 
-    chart
-        .draw_series(LineSeries::new(
-            (0..data.len()).map(|i| (i as f32, data[i])),
-            &BLACK
-        ))?;
-    
-    chart
-        .draw_series(LineSeries::new(
-            (0..=1).map(|x| ((N_SAMPLES as f32) * (x as f32), param)),
-            &BLACK
-        ))?;
-    
+    chart.draw_series(LineSeries::new(
+        (0..data.len()).map(|i| (i as f32, data[i])),
+        &BLACK,
+    ))?;
+
+    chart.draw_series(LineSeries::new(
+        (0..=1).map(|x| ((N_SAMPLES as f32) * (x as f32), param)),
+        &BLACK,
+    ))?;
+
     let mut idx: Vec<_> = (2..=N_SAMPLES).map(|x| x as f32).collect();
-    chart
-        .draw_series(LineSeries::new(
-            (0..est.len()).map(|i| (idx[i], est[i].0)),
-            &RED,
-        ))?;
+    chart.draw_series(LineSeries::new(
+        (0..est.len()).map(|i| (idx[i], est[i].0)),
+        &RED,
+    ))?;
 
     let mut interval: Vec<_> = (0..idx.len()).map(|i| est[i].0 + cnf[i]).collect();
     interval.extend((0..idx.len()).rev().map(|i| est[i].0 - cnf[i]));
     idx.extend(idx.clone().iter().rev());
 
     let vertices: Vec<_> = (0..interval.len()).map(|i| (idx[i], interval[i])).collect();
-    chart.draw_series(std::iter::once(Polygon::new(
-        vertices,
-        RED.mix(0.2),
-    )))?;
+    chart.draw_series(std::iter::once(Polygon::new(vertices, RED.mix(0.2))))?;
 
     root.present().expect("Unable to write result to file, please make sure 'plotters-doc-data' dir exists under current dir");
     println!("Result has been saved to {}", OUT_FILE_NAME);
