@@ -5,7 +5,8 @@ use rand::thread_rng;
 use statrs::distribution::Normal;
 use nalgebra::*;
 
-use sp_estimate::filters::kalman_filter::{KalmanFilter, LTISystem};
+use sp_estimate::filters::kalman_filter::KalmanFilter;
+use sp_estimate::filters::systems::LTISystem;
 
 const ANIMATION_FILE_NAME: &str = "animation.gif";
 const ERROR_CHART_NAME: &str = "error.png";
@@ -70,11 +71,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(_) => panic!(),
         };
 
-        kf_est.push_front((est.state[0], est.state[1]));
+        kf_est.push_front((est.mean[0], est.mean[1]));
         if kf_est.len() > 20 {
             kf_est.pop_back();
         }
-        kf_error.push(((est.state[0] - state.0).powf(2.0) + (est.state[1] - state.1).powf(2.0)).sqrt());
+        kf_error.push(((est.mean[0] - state.0).powf(2.0) + (est.mean[1] - state.1).powf(2.0)).sqrt());
 
         t += DT;
 
