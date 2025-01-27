@@ -15,7 +15,8 @@ const FREQ: f64 = 0.7854;
 const T_MAX: f64 = 20.0;
 const DT: f64 = 0.05;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[test]
+fn LTI_system() -> Result<(), Box<dyn std::error::Error>> {
     let mut rng = thread_rng();
     let n = Normal::new(0.0, 0.1).unwrap();
 
@@ -27,8 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut kf_est: VecDeque<(f64, f64)> = VecDeque::<(f64, f64)>::new();
     let mut kf_error = Vec::<f64>::new();
 
-    let sys = LTISystem {
-        F: matrix!{
+    let sys = LTISystem::new(
+        matrix!{
             1.0, 0.0, DT, 0.0, 0.5 * DT.powf(2.0), 0.0;
             0.0, 1.0, 0.0, DT, 0.0, 0.5 * DT.powf(2.0);
             0.0, 0.0, 1.0, 0.0, DT, 0.0;
@@ -36,13 +37,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             0.0, 0.0, 0.0, 0.0, 1.0, 0.0;
             0.0, 0.0, 0.0, 0.0, 0.0, 1.0;
         },
-        H: matrix!{
+        matrix!{
             1.0, 0.0, 0.0, 0.0, 0.0, 0.0;
             0.0, 1.0, 0.0, 0.0, 0.0, 0.0
         },
-        Q: 0.001 * SMatrix::identity(),
-        R: 0.1 * SMatrix::identity(),
-    };
+        0.001 * SMatrix::identity(),
+        0.1 * SMatrix::identity(),
+    );
     let mut KF = KalmanFilter::new(sys);
 
     let root = BitMapBackend::gif(ANIMATION_FILE_NAME, (400, 400), (1000. * DT) as u32)?.into_drawing_area();
@@ -61,10 +62,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         obsv_error.push((w[0].powf(2.0) + w[1].powf(2.0)).sqrt());
 
-        match obsv.front() {
+        let _ = match obsv.front() {
             Some(p) => KF.update(&vector!{p.0, p.1}),
             None => unreachable!(),
-        }
+        };
 
         let est = match KF.predict() {
             Ok(e) => e,
@@ -125,9 +126,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ).unwrap();
 
     Ok(())
-}
-
-#[test]
-fn kalman_filter_test() {
-    main().unwrap()
 }

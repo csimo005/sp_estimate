@@ -1,9 +1,28 @@
 use nalgebra::{SMatrix, SVector};
 use crate::filters::gaussian_state::GaussianState;
-use crate::filters::systems::LTISystem;
+use crate::filters::systems::{LTISystem,SystemModel};
 
-pub enum KFErrors {
+#[derive(Debug)]
+pub enum KFError {
     UninitializedState,
+}
+
+impl std::fmt::Display for KFError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            KFError::UninitializedState => write!(f, "No measurements recieved"),
+            // Add more match arms as needed
+        }
+    }
+}
+
+impl std::error::Error for KFError {
+    fn description(&self) -> &str {
+        match *self {
+            KFError::UninitializedState => "No measurements recieved",
+            // Add more match arms as needed
+        }
+    }
 }
 
 pub struct KalmanFilter<const S: usize, const O: usize> {
@@ -16,38 +35,47 @@ impl<const S: usize, const O: usize> KalmanFilter<S, O> {
         Self{system_model, posterior: None}
     }
 
-    pub fn predict(&mut self) -> Result<GaussianState<S>, KFErrors> {
+    pub fn predict(&mut self) -> Result<GaussianState<S>, KFError> {
         match &self.posterior {
             Some(p) => Ok(p.clone()),
-            None => Err(KFErrors::UninitializedState),
+            None => Err(KFError::UninitializedState),
         }
     }
 
-    pub fn update(&mut self, z: &SVector<f64, O>) {
-        let prior = match &self.posterior {
-            Some(posterior) => GaussianState{
-                mean: self.system_model.F * posterior.mean,
-                covariance: self.system_model.F * posterior.covariance * self.system_model.F.transpose() + self.system_model.Q,
-            },
-            None => GaussianState {
+    pub fn update(&mut self, z: &SVector<f64, O>) -> Result<(), KFError>{
+        let posterior = match &self.posterior {
+            Some(posterior) => posterior,
+            None => &GaussianState {
                 mean: SVector::zeros(),
                 covariance: SMatrix::identity(),
-            }
+            },
         };
 
-        let innovation = GaussianState::<O> {
-            mean: z - self.system_model.H * prior.mean,
-            covariance: self.system_model.H * prior.covariance * self.system_model.H.transpose() + self.system_model.R,
+        let F = self.system_model.state_transition_matrix(posterior);
+        let H = self.system_model.observation_matrix(posterior);
+        let Q = self.system_model.process_noise_covariance(posterior);
+        let R = self.system_model.observation_noise_covariance(posterior);
+
+        let prior = GaussianState{
+                mean: F * posterior.mean,
+                covariance: F * posterior.covariance * F.transpose() + Q,
+        };
+
+        let innovation = GaussianState {
+            mean: z - H * prior.mean,
+            covariance: H * prior.covariance * H.transpose() + R,
         };
 
         let kalman_gain = match innovation.covariance.try_inverse() {
-            Some(inv) => prior.covariance * self.system_model.H.transpose() * inv,
+            Some(inv) => prior.covariance * H.transpose() * inv,
             None => panic!(),
         };
 
         self.posterior = Some(GaussianState {
             mean: prior.mean + kalman_gain * innovation.mean,
-            covariance: (SMatrix::identity() - kalman_gain * self.system_model.H) * prior.covariance,
+            covariance: (SMatrix::identity() - kalman_gain * H) * prior.covariance,
         });
+
+        Ok(())
     }
 }
